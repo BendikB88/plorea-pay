@@ -14,6 +14,7 @@
   --line: #e8e4dd;
 
   --radius-card: 18px;
+  --radius-control: 12px;
   --shadow-card: 0 1px 2px rgba(28, 9, 62, 0.04), 0 16px 48px rgba(28, 9, 62, 0.1);
 
   --font-done: var(--font-instrument-sans), "Done Sans", ui-sans-serif, system-ui,
@@ -212,6 +213,33 @@ body {
   max-width: 34ch;
 }
 
+.pay-button-secondary {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 20px;
+  border: 1px solid var(--midnight);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--midnight);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pay-button-secondary:hover {
+  background: var(--midnight);
+  color: #ffffff;
+}
+
+.pay-button-secondary:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
 .pay-footer {
   margin: auto 0 0;
   padding-top: 20px;
@@ -243,7 +271,7 @@ body {
   --adyen-sdk-color-outline-primary-active: var(--violet);
   --adyen-sdk-color-background-always-dark: var(--violet);
   --adyen-sdk-color-label-primary: var(--ink);
-  --adyen-sdk-radius-m: 12px;
+  --adyen-sdk-radius-m: var(--radius-control);
   --adyen-sdk-font-family: var(--font-done);
 }
 
