@@ -12,6 +12,7 @@ export type PaymentLink = {
   merchantName?: string;
   orgNr?: string;
   email?: string;
+  returnUrl?: string;
   environment: "test" | "live";
   expired: boolean;
 };
@@ -19,6 +20,18 @@ export type PaymentLink = {
 export type PaymentLinkResult =
   | { ok: true; link: PaymentLink }
   | { ok: false; reason: "not-found" | "error" };
+
+/** Slipper kun gjennom http(s) — vi sender kunden hit med window.location. */
+function safeRedirectUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "https:" || protocol === "http:" ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function normalize(id: string, raw: Record<string, unknown>): PaymentLink {
   const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
@@ -33,6 +46,7 @@ function normalize(id: string, raw: Record<string, unknown>): PaymentLink {
     merchantName: str(raw.merchantName),
     orgNr: str(raw.merchantOrgNr) ?? str(raw.orgNr),
     email: str(raw.email) ?? str(raw.shopperEmail),
+    returnUrl: safeRedirectUrl(str(raw.returnUrl)),
     environment: str(raw.environment) === "live" ? "live" : "test",
     expired: raw.expired === true || str(raw.status) === "expired",
   };

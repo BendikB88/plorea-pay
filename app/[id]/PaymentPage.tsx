@@ -122,6 +122,18 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
     };
   }, [link.id, link.amount, link.currency]);
 
+  // La success-meldingen stå litt før vi sender kunden tilbake til avsender.
+  useEffect(() => {
+    const returnUrl = link.returnUrl;
+    if (status.kind !== "success" || !returnUrl) return;
+
+    const timer = setTimeout(() => {
+      window.location.href = returnUrl;
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [status.kind, link.returnUrl]);
+
   const merchantName = link.merchantName ?? "Betaling";
   const initial = merchantName.trim().charAt(0).toUpperCase() || "•";
   const showDropin = status.kind === "loading" || status.kind === "ready";
@@ -179,6 +191,7 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
               <h2 className="pay-result-title">Betalingen er gjennomført</h2>
               <p className="pay-result-body">
                 Takk! Kvittering sendes til deg{link.email ? ` på ${link.email}` : ""}.
+                {link.returnUrl ? " Du sendes tilbake om et øyeblikk …" : ""}
               </p>
             </div>
           ) : null}
