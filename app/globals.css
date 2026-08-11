@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+/* ---- Done DS v1.2 ---- */
+:root {
+  --midnight: #1c093e;
+  --violet: #6323dd;
+  --violet-soft: #9b6fe8;
+  --gradient: linear-gradient(135deg, #6323dd 0%, #9b6fe8 100%);
+
+  --greige: #f3f1ed;
+  --surface: #ffffff;
+  --ink: var(--midnight);
+  --ink-muted: #6f6880;
+  --line: #e8e4dd;
+
+  --radius-card: 18px;
+  --shadow-card: 0 1px 2px rgba(28, 9, 62, 0.04), 0 16px 48px rgba(28, 9, 62, 0.1);
+
+  --font-done: var(--font-instrument-sans), "Done Sans", ui-sans-serif, system-ui,
+    "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--greige);
+  color: var(--ink);
+  font-family: var(--font-done);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- done° ordmerke ---- */
+.wordmark {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.wordmark-light {
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+.wordmark-degree {
+  color: var(--violet-soft);
+}
+
+.wordmark-light .wordmark-degree {
+  color: var(--violet-soft);
+}
+
+/* ---- Betalingsside ---- */
+.pay-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.pay-card {
+  width: 100%;
+  max-width: 940px;
+  display: grid;
+  grid-template-columns: 44% 56%;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* Venstre: fakturadetaljer */
+.pay-summary {
+  padding: 40px 36px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.pay-merchant {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pay-avatar {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
+  background: var(--gradient);
+  color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-merchant-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pay-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+
+.pay-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pay-detail dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.pay-detail dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.pay-total {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pay-total-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.pay-total-value {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Høyre: Adyen Drop-in */
+.pay-checkout {
+  padding: 40px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pay-status {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.pay-status-muted {
+  color: var(--ink-muted);
+}
+
+.pay-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 24px 0;
+}
+
+.pay-result-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.375rem;
+  background: rgba(99, 35, 221, 0.08);
+  color: var(--violet);
+}
+
+.pay-result-icon-success {
+  background: var(--gradient);
+  color: #ffffff;
+}
+
+.pay-result-icon-error {
+  background: rgba(214, 45, 45, 0.1);
+  color: #c92a2a;
+}
+
+.pay-result-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pay-result-body {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink-muted);
+  max-width: 34ch;
+}
+
+.pay-footer {
+  margin: auto 0 0;
+  padding-top: 20px;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.pay-footer .wordmark {
+  color: var(--ink-muted);
+}
+
+.pay-footer a {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.pay-footer a:hover {
+  color: var(--violet);
+  text-decoration: underline;
+}
+
+.pay-footer-sep {
+  color: var(--line);
+}
+
+/* Adyen Drop-in i Done-drakt */
+#dropin-container {
+  --adyen-sdk-color-outline-primary-active: var(--violet);
+  --adyen-sdk-color-background-always-dark: var(--violet);
+  --adyen-sdk-color-label-primary: var(--ink);
+  --adyen-sdk-radius-m: 12px;
+  --adyen-sdk-font-family: var(--font-done);
+}
+
+/* ---- Utilgjengelig lenke ---- */
+.unavailable {
+  min-height: 100dvh;
+  background: var(--midnight);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.unavailable-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  max-width: 32rem;
+}
+
+.unavailable-title {
+  margin: 12px 0 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.unavailable-body {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.9375rem;
+}
+
+/* ---- Responsivt ---- */
+@media (max-width: 800px) {
+  .pay-shell {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .pay-card {
+    grid-template-columns: 1fr;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100dvh;
+  }
+
+  .pay-summary {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 28px 20px;
+    gap: 20px;
+  }
+
+  .pay-total {
+    margin-top: 0;
+  }
+
+  .pay-checkout {
+    padding: 28px 20px 36px;
+  }
+}
