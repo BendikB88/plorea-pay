@@ -19,12 +19,6 @@ export async function POST(
 ) {
   const { id } = await ctx.params;
 
-  const apiKey = process.env.PLOREA_API_KEY;
-  if (!apiKey) {
-    console.error("PLOREA_API_KEY mangler");
-    return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
-  }
-
   const result = await fetchPaymentLink(id);
   if (!result.ok) {
     return Response.json(
@@ -36,6 +30,27 @@ export async function POST(
   const { link } = result;
   if (link.expired) {
     return Response.json({ error: "Betalingslenken er utløpt" }, { status: 410 });
+  }
+
+  // Miljøet på lenken avgjør hvilket nøkkelpar vi bruker — både mot Plorea og Adyen.
+  const isLive = link.environment === "live";
+
+  const apiKey = isLive
+    ? process.env.PLOREA_API_KEY_LIVE
+    : process.env.PLOREA_API_KEY_TEST;
+
+  if (!apiKey) {
+    console.error(`Plorea API-nøkkel mangler for miljø ${link.environment}`);
+    return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
+  }
+
+  const clientKey = isLive
+    ? process.env.ADYEN_CLIENT_KEY_LIVE
+    : process.env.ADYEN_CLIENT_KEY_TEST;
+
+  if (!clientKey) {
+    console.error(`Adyen client key mangler for miljø ${link.environment}`);
+    return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
   }
 
   const setupResponse = await fetch(`${PAYMENTS_API_BASE}/payment-methods/setup/session`, {
@@ -69,7 +84,6 @@ export async function POST(
   const session = (await setupResponse.json()) as {
     sessionId?: string;
     sessionData?: string;
-    environment?: string;
   };
 
   if (!session.sessionId || !session.sessionData) {
@@ -77,20 +91,10 @@ export async function POST(
     return Response.json({ error: "Kunne ikke starte betalingen" }, { status: 502 });
   }
 
-  const isLive = session.environment === "live";
-  const clientKey = isLive
-    ? process.env.ADYEN_CLIENT_KEY_LIVE
-    : process.env.ADYEN_CLIENT_KEY_TEST;
-
-  if (!clientKey) {
-    console.error(`Adyen client key mangler for miljø ${session.environment ?? "test"}`);
-    return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
-  }
-
   return Response.json({
     sessionId: session.sessionId,
     sessionData: session.sessionData,
     clientKey,
-    environment: isLive ? "live" : "test",
+    environment: link.environment,
   });
 }

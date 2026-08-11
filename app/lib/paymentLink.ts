@@ -12,6 +12,7 @@ export type PaymentLink = {
   merchantName?: string;
   orgNr?: string;
   email?: string;
+  environment: "test" | "live";
   expired: boolean;
 };
 
@@ -32,6 +33,7 @@ function normalize(id: string, raw: Record<string, unknown>): PaymentLink {
     merchantName: str(raw.merchantName),
     orgNr: str(raw.merchantOrgNr) ?? str(raw.orgNr),
     email: str(raw.email) ?? str(raw.shopperEmail),
+    environment: str(raw.environment) === "live" ? "live" : "test",
     expired: raw.expired === true || str(raw.status) === "expired",
   };
 }
