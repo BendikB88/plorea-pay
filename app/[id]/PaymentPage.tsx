@@ -62,7 +62,7 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
         }
 
         const session = (await response.json()) as SessionResponse;
-        const { AdyenCheckout, Dropin } = await import("@adyen/adyen-web");
+        const { AdyenCheckout, Dropin, Card } = await import("@adyen/adyen-web/auto");
 
         if (cancelled || !containerRef.current) return;
 
@@ -94,8 +94,11 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
 
         if (cancelled || !containerRef.current) return;
 
-        // Ingen hardkodede metoder — Drop-in viser kun det som er aktivert på kontoen.
-        dropin = new Dropin(checkout).mount(containerRef.current);
+        // Card må registreres eksplisitt, ellers feiler Drop-in med «'scheme' component not configured».
+        // Utover det er ingen metoder hardkodet — Drop-in viser kun det som er aktivert på kontoen.
+        dropin = new Dropin(checkout, {
+          paymentMethodComponents: [Card],
+        }).mount(containerRef.current);
         setStatus({ kind: "ready" });
       } catch (error) {
         if (cancelled) return;
