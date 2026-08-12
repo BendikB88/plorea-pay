@@ -35,14 +35,11 @@ export async function POST(
   // Miljøet på lenken avgjør hvilket nøkkelpar vi bruker — både mot Plorea og Adyen.
   const isLive = link.environment === "live";
 
+  // /payments/session er uautentisert — paymentLinkId er hemmeligheten. Nøkkelen
+  // sendes likevel når den finnes, men mangler den er det ikke lenger blokkerende.
   const apiKey = isLive
     ? process.env.PLOREA_API_KEY_LIVE
     : process.env.PLOREA_API_KEY_TEST;
-
-  if (!apiKey) {
-    console.error(`Plorea API-nøkkel mangler for miljø ${link.environment}`);
-    return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
-  }
 
   const clientKey = isLive
     ? process.env.ADYEN_CLIENT_KEY_LIVE
@@ -53,23 +50,22 @@ export async function POST(
     return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
   }
 
-  const setupResponse = await fetch(`${PAYMENTS_API_BASE}/payment-methods/setup/session`, {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "X-Environment": isLive ? "live" : "test",
+  };
+
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+  // Engangsbetaling: beløp, referanse, splits og merchant hentes fra link-recorden
+  // på serversiden, så vi sender kun lenke-id og hvor kunden skal tilbake.
+  const setupResponse = await fetch(`${PAYMENTS_API_BASE}/payments/session`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "X-Environment": isLive ? "live" : "test",
-    },
+    headers,
     body: JSON.stringify({
-      tenantId: link.tenantId,
-      shopperReference: `pay-${id}-${Date.now()}`,
-      recurringType: "UnscheduledCardOnFile",
+      paymentLinkId: id,
       returnUrl: `${resolveOrigin(request)}/${id}`,
-      amount: link.amount,
-      currency: link.currency,
-      reference: link.reference,
-      product: link.product,
     }),
     cache: "no-store",
   });
