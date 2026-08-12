@@ -59,6 +59,7 @@ export async function POST(
       "Content-Type": "application/json",
       Accept: "application/json",
       Authorization: `Bearer ${apiKey}`,
+      "X-Environment": isLive ? "live" : "test",
     },
     body: JSON.stringify({
       tenantId: link.tenantId,
