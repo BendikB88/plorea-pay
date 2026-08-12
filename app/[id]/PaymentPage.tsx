@@ -176,6 +176,17 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
               {formatAmount(link.amount, link.currency)}
             </span>
           </div>
+
+          {link.invoice_url ? (
+            <a
+              href={link.invoice_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pay-button-secondary"
+            >
+              Last ned faktura
+            </a>
+          ) : null}
         </section>
 
         <section className="pay-checkout">
@@ -193,17 +204,6 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
                 Takk! Kvittering sendes til deg{link.email ? ` på ${link.email}` : ""}.
                 {link.returnUrl ? " Du sendes tilbake om et øyeblikk …" : ""}
               </p>
-              {link.invoice_url ? (
-                <a
-                  className="pay-button-secondary"
-                  href={link.invoice_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                >
-                  Last ned faktura
-                </a>
-              ) : null}
             </div>
           ) : null}
 
