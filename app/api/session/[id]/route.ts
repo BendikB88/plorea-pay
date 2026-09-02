@@ -95,3 +95,36 @@ export async function POST(
     environment: link.environment,
   });
 }
+
+/**
+ * Konfigurasjon uten å opprette sesjon. Brukes når kunden kommer tilbake fra en
+ * redirect (Vipps, 3DS) og betalingen bare skal fullføres — da finnes sesjonen
+ * allerede, og lenken kan ha blitt markert som betalt/utløpt i mellomtiden.
+ */
+export async function GET(
+  _request: NextRequest,
+  ctx: RouteContext<"/api/session/[id]">
+) {
+  const { id } = await ctx.params;
+
+  const result = await fetchPaymentLink(id);
+  if (!result.ok) {
+    return Response.json(
+      { error: "Fant ikke betalingslenken" },
+      { status: result.reason === "not-found" ? 404 : 502 }
+    );
+  }
+
+  const { link } = result;
+  const clientKey =
+    link.environment === "live"
+      ? process.env.ADYEN_CLIENT_KEY_LIVE
+      : process.env.ADYEN_CLIENT_KEY_TEST;
+
+  if (!clientKey) {
+    console.error(`Adyen client key mangler for miljø ${link.environment}`);
+    return Response.json({ error: "Betaling er ikke konfigurert" }, { status: 500 });
+  }
+
+  return Response.json({ clientKey, environment: link.environment });
+}

@@ -11,6 +11,7 @@ const PRIVACY_URL = "https://done.no/personvern";
 type Status =
   | { kind: "loading" }
   | { kind: "ready" }
+  | { kind: "verifying" }
   | { kind: "success" }
   | { kind: "pending"; message: string }
   | { kind: "error"; message: string };
@@ -18,6 +19,11 @@ type Status =
 type SessionResponse = {
   sessionId: string;
   sessionData: string;
+  clientKey: string;
+  environment: "test" | "live";
+};
+
+type ConfigResponse = {
   clientKey: string;
   environment: "test" | "live";
 };
@@ -46,13 +52,100 @@ function messageForResultCode(resultCode: string): Status {
   }
 }
 
+/** Adyen lagrer sesjonen i localStorage før redirect — fallback når URL-en mangler sessionId. */
+function storedSessionId(): string | null {
+  try {
+    const raw = window.localStorage.getItem("adyen-checkout__session");
+    const stored = raw ? (JSON.parse(raw) as { id?: string }) : null;
+    return stored?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Engangsparameterne skal ikke bli liggende — en refresh må ikke fullføre på nytt. */
+function stripRedirectParams() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("redirectResult");
+  url.searchParams.delete("sessionId");
+  url.searchParams.delete("sessionResult");
+  window.history.replaceState(null, "", url.toString());
+}
+
 export default function PaymentPage({ link }: { link: PaymentLink }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const redirectHandledRef = useRef(false);
   const [status, setStatus] = useState<Status>({ kind: "loading" });
 
   useEffect(() => {
     let cancelled = false;
     let dropin: { unmount: () => void } | null = null;
+
+    const applyResultCode = (resultCode: string) =>
+      setStatus(
+        resultCode === "Authorised"
+          ? { kind: "success" }
+          : messageForResultCode(resultCode)
+      );
+
+    const reportAdyenError = (error: unknown) => {
+      console.error("Adyen-feil", error);
+      setStatus({
+        kind: "error",
+        message: "Noe gikk galt med betalingen. Last siden på nytt og prøv igjen.",
+      });
+    };
+
+    // Kunden kommer tilbake fra Vipps/3DS med ?redirectResult=… — da skal betalingen
+    // fullføres, ikke startes på nytt. Statusoppdateringene her sjekker ikke `cancelled`:
+    // React kjører effekten to ganger i dev, og runde to hopper over jobben (se ref-en).
+    async function completeRedirect(redirectResult: string) {
+      try {
+        // GET oppretter ingen ny sesjon — den gir bare client key og miljø.
+        const response = await fetch(`/api/session/${link.id}`);
+        if (!response.ok) {
+          throw new Error(`Konfigurasjon feilet: ${response.status}`);
+        }
+
+        const config = (await response.json()) as ConfigResponse;
+
+        // Adyen sender sessionId tilbake i URL-en; sessionData ligger igjen i
+        // localStorage og hentes av SDK-en når vi kun oppgir id-en.
+        const sessionId =
+          new URLSearchParams(window.location.search).get("sessionId") ??
+          storedSessionId();
+
+        if (!sessionId) {
+          throw new Error("Fant ingen sessionId å fullføre betalingen mot");
+        }
+
+        const { AdyenCheckout } = await import("@adyen/adyen-web/auto");
+
+        const checkout = await AdyenCheckout({
+          environment: config.environment,
+          clientKey: config.clientKey,
+          session: { id: sessionId } as { id: string; sessionData: string },
+          locale: "nb-NO",
+          countryCode: "NO",
+          amount: { value: link.amount, currency: link.currency },
+          onPaymentCompleted: (data) => applyResultCode(data.resultCode),
+          onPaymentFailed: (data) =>
+            setStatus(messageForResultCode(data?.resultCode ?? "")),
+          onError: reportAdyenError,
+        });
+
+        checkout.submitDetails({ details: { redirectResult } });
+      } catch (error) {
+        console.error("Kunne ikke fullføre betalingen etter redirect", error);
+        setStatus({
+          kind: "error",
+          message:
+            "Vi fikk ikke bekreftet betalingen. Ta kontakt hvis beløpet er trukket fra kontoen din.",
+        });
+      } finally {
+        stripRedirectParams();
+      }
+    }
 
     async function setup() {
       try {
@@ -73,23 +166,10 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
           locale: "nb-NO",
           countryCode: "NO",
           amount: { value: link.amount, currency: link.currency },
-          onPaymentCompleted: (data) => {
-            setStatus(
-              data.resultCode === "Authorised"
-                ? { kind: "success" }
-                : messageForResultCode(data.resultCode)
-            );
-          },
-          onPaymentFailed: (data) => {
-            setStatus(messageForResultCode(data?.resultCode ?? ""));
-          },
-          onError: (error) => {
-            console.error("Adyen-feil", error);
-            setStatus({
-              kind: "error",
-              message: "Noe gikk galt med betalingen. Last siden på nytt og prøv igjen.",
-            });
-          },
+          onPaymentCompleted: (data) => applyResultCode(data.resultCode),
+          onPaymentFailed: (data) =>
+            setStatus(messageForResultCode(data?.resultCode ?? "")),
+          onError: reportAdyenError,
         });
 
         if (cancelled || !containerRef.current) return;
@@ -108,6 +188,19 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
           message: "Vi fikk ikke startet betalingen. Prøv igjen om litt.",
         });
       }
+    }
+
+    const redirectResult = new URLSearchParams(window.location.search).get(
+      "redirectResult"
+    );
+
+    if (redirectResult) {
+      if (!redirectHandledRef.current) {
+        redirectHandledRef.current = true;
+        setStatus({ kind: "verifying" });
+        completeRedirect(redirectResult);
+      }
+      return;
     }
 
     setup();
@@ -192,6 +285,10 @@ export default function PaymentPage({ link }: { link: PaymentLink }) {
         <section className="pay-checkout">
           {status.kind === "loading" ? (
             <p className="pay-status pay-status-muted">Laster betalingsmåter …</p>
+          ) : null}
+
+          {status.kind === "verifying" ? (
+            <p className="pay-status pay-status-muted">Bekrefter betalingen …</p>
           ) : null}
 
           {status.kind === "success" ? (
