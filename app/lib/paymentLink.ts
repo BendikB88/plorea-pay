@@ -1,6 +1,14 @@
 export const PAYMENTS_API_BASE =
   process.env.PLOREA_API_BASE ?? "https://payments.plorea.no";
 
+/** Maks ventetid mot Plorea API før vi gir opp og svarer 504. */
+export const PLOREA_TIMEOUT_MS = 8000;
+
+/** AbortSignal.timeout avbryter med en TimeoutError — både under kall og body-lesing. */
+export function isTimeoutError(err: unknown): boolean {
+  return (err as { name?: unknown } | null)?.name === "TimeoutError";
+}
+
 /** Betalingslenke slik pay.plorea.no bruker den. Beløp er i minste enhet (øre). */
 export type PaymentLink = {
   id: string;
@@ -20,7 +28,7 @@ export type PaymentLink = {
 
 export type PaymentLinkResult =
   | { ok: true; link: PaymentLink }
-  | { ok: false; reason: "not-found" | "error" };
+  | { ok: false; reason: "not-found" | "timeout" | "error" };
 
 /** Slipper kun gjennom http(s) — URL-ene brukes i window.location og href. */
 function safeRedirectUrl(value: string | undefined): string | undefined {
@@ -62,9 +70,11 @@ export async function fetchPaymentLink(id: string): Promise<PaymentLinkResult> {
     response = await fetch(`${PAYMENTS_API_BASE}/pay/${encodeURIComponent(id)}`, {
       cache: "no-store",
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(PLOREA_TIMEOUT_MS),
     });
-  } catch {
-    return { ok: false, reason: "error" };
+  } catch (err) {
+    console.error(`Henting av betalingslenke ${id} feilet`, err);
+    return { ok: false, reason: isTimeoutError(err) ? "timeout" : "error" };
   }
 
   if (response.status === 404 || response.status === 410) {
@@ -72,14 +82,16 @@ export async function fetchPaymentLink(id: string): Promise<PaymentLinkResult> {
   }
 
   if (!response.ok) {
+    console.error(`Henting av betalingslenke ${id} feilet (${response.status})`);
     return { ok: false, reason: "error" };
   }
 
   try {
     const raw = (await response.json()) as Record<string, unknown>;
     return { ok: true, link: normalize(id, raw) };
-  } catch {
-    return { ok: false, reason: "error" };
+  } catch (err) {
+    console.error(`Betalingslenke ${id} kunne ikke leses`, err);
+    return { ok: false, reason: isTimeoutError(err) ? "timeout" : "error" };
   }
 }
 
