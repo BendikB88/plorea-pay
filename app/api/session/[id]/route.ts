@@ -117,14 +117,14 @@ export async function POST(
     );
   }
 
+  // Debug: hvilke felt Plorea faktisk returnerer — kun nøklene, aldri verdiene.
+  console.log(`Sesjonssvar for lenke ${id} (${setupResponse.status})`, Object.keys(session));
+
   const sessionId = session.sessionId ?? session.id;
   const sessionData = session.sessionData ?? session.data;
 
   if (!sessionId || !sessionData) {
-    console.error(
-      `Sesjonssvaret for lenke ${id} manglet sessionId/sessionData`,
-      Object.keys(session)
-    );
+    console.error(`Sesjonssvaret for lenke ${id} manglet sessionId/sessionData`);
     return Response.json({ error: "Kunne ikke starte betalingen" }, { status: 502 });
   }
 
