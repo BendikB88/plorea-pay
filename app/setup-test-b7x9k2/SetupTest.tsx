@@ -16,6 +16,26 @@ type Status =
   | { kind: "done"; resultCode: string; raw: unknown }
   | { kind: "error"; message: string; raw?: unknown };
 
+/**
+ * Leser en parameter rett fra den rå query-strengen. URLSearchParams (og dermed
+ * Next sine searchParams) gjør «+» om til mellomrom, noe som ødelegger base64 i
+ * sessionData når den er limt inn uten URL-koding. decodeURIComponent lar «+» stå.
+ */
+function rawSearchParam(name: string): string | null {
+  for (const part of window.location.search.slice(1).split("&")) {
+    const eq = part.indexOf("=");
+    const key = eq === -1 ? part : part.slice(0, eq);
+    if (key !== name) continue;
+    const value = eq === -1 ? "" : part.slice(eq + 1);
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return null;
+}
+
 export default function SetupTest({ sessionId, sessionData, clientKey, environment }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const missing = [
@@ -43,7 +63,10 @@ export default function SetupTest({ sessionId, sessionData, clientKey, environme
         const checkout = await AdyenCheckout({
           environment,
           clientKey: clientKey!,
-          session: { id: sessionId!, sessionData: sessionData! },
+          session: {
+            id: sessionId!,
+            sessionData: rawSearchParam("sessionData") ?? sessionData!,
+          },
           locale: "nb-NO",
           countryCode: "NO",
           onPaymentCompleted: (data) =>
