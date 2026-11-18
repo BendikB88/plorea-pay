@@ -43,6 +43,7 @@ export type ReceiptParty = {
   orgNr?: string;
   orgNrFormatted?: string;
   email?: string;
+  phone?: string;
   address?: {
     line1?: string;
     line2?: string;
@@ -69,6 +70,9 @@ export type Receipt = {
   paid: number;
   refunded: number;
   card: { brand: string | null; last4: string | null } | null;
+  // Selgerens egen setning, når de har skrevet en. Null ellers: siden viser
+  // ingenting i stedet for en høflighetsfrase vi fant på for dem.
+  note: string | null;
   fileUrl: string | null;
   disclaimer: string;
 };
@@ -117,6 +121,37 @@ export async function fetchReceipt(token: string): Promise<ReceiptResult> {
   }
 }
 
+/**
+ * `Visa •••• 1111`, med stor forbokstav.
+ *
+ * Leverandøren sender en kodet merkelapp og ikke et navn — `visa`, `mc` — og
+ * den rå verdien gir «MC •••• 1111», som ikke er det som står på kortet
+ * leseren holder i hånden. Samme tabell som i dokumentgeneratoren, fordi
+ * siden og PDF-en skal si det samme ordet om det samme kortet.
+ */
+const CARD_BRANDS: Record<string, string> = {
+  visa: "Visa",
+  mc: "Mastercard",
+  mastercard: "Mastercard",
+  amex: "American Express",
+  maestro: "Maestro",
+  diners: "Diners Club",
+  discover: "Discover",
+  jcb: "JCB",
+  unionpay: "UnionPay",
+  bcmc: "Bancontact",
+};
+
+export function cardLabel(card: Receipt["card"]): string {
+  if (!card || (!card.brand && !card.last4)) return "Kort";
+  const raw = (card.brand ?? "").trim();
+  const brand = raw
+    ? CARD_BRANDS[raw.toLowerCase()] ??
+      raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+    : "Kort";
+  return card.last4 ? `${brand} •••• ${card.last4}` : brand;
+}
+
 /** 25 % i stedet for 0.25, og 12,5 % i stedet for 12.5 %. */
 export function formatVatRate(rate: number | null): string {
   if (rate === null || rate === undefined) return "uten MVA";
@@ -134,6 +169,21 @@ export function formatReceiptDate(iso: string | null): string {
     month: "long",
     year: "numeric",
   });
+}
+
+/**
+ * `915006620` -> `915 006 620`.
+ *
+ * Selgeren kommer ferdig formatert fra API-et; kunden gjør ikke det, fordi
+ * kundeblokken er fryst nøyaktig slik den ble sendt inn. Et niende siffer
+ * grupperes i tre og tre som nordmenn leser det, og alt annet vises som det er
+ * heller enn å bli stokket om til noe som ser riktig ut og ikke er det.
+ */
+export function formatOrgNr(value: string | undefined | null): string | null {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length !== 9) return digits;
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
 }
 
 /** Adressen som de to eller tre linjene en leser forventer. */
