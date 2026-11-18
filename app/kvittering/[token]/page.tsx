@@ -23,6 +23,7 @@
  * selve hendelsen og ligger hos hver tenant, så den var ingen hemmelighet å
  * bygge en side på. Nå er den 404 her.
  */
+import { notFound } from "next/navigation";
 import { formatAmount } from "@/app/lib/paymentLink";
 import {
   addressLines,
@@ -49,8 +50,21 @@ export default async function Page({
   const { token } = await params;
   const result = await fetchReceipt(token);
 
+  /**
+   * A real 404 for a receipt that is not there, and only for that.
+   *
+   * `notFound()` is the only way an App Router page can set the status, and
+   * the status is the honest part: until 18 November 2026 this answered 200
+   * with "Fant ikke kvitteringen" on it, which told every crawler, monitor and
+   * `curl` that the page was fine.
+   *
+   * A timeout is **not** a 404 and must not become one. The receipt may well
+   * exist; we did not manage to ask. Answering "not found" to that would tell
+   * a customer their receipt is gone because our API was slow.
+   */
   if (!result.ok) {
-    return <LinkUnavailable message="Fant ikke kvitteringen" />;
+    if (result.reason === "not-found") notFound();
+    return <LinkUnavailable message="Kunne ikke hente kvitteringen akkurat nå" />;
   }
 
   const receipt = result.receipt;
