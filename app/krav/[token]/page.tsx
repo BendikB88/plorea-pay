@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { formatAmount } from "@/app/lib/paymentLink";
 import { fetchPaymentRequest, formatDueDate } from "@/app/lib/paymentRequest";
+import { notFound } from "next/navigation";
 import LinkUnavailable from "@/app/[id]/LinkUnavailable";
 
 export const metadata = {
@@ -22,12 +23,20 @@ export default async function Page({ params }: PageProps<"/krav/[token]">) {
   const { token } = await params;
   const result = await fetchPaymentRequest(token);
 
+  // A real 404 for a request that is not there, and only for that: a timeout
+  // means we did not manage to ask, not that the demand is gone.
   if (!result.ok) {
-    return <LinkUnavailable message="Fant ikke fakturaen" />;
+    if (result.reason === "not-found") notFound();
+    return <LinkUnavailable message="Kunne ikke hente fakturaen akkurat nå" />;
   }
 
   const request = result.request;
 
+  /**
+   * A withdrawn demand stays 200. It is not missing — it existed, it was this
+   * one, and "withdrawn" is a different thing to tell somebody than "never
+   * was". Same reasoning as an expired payment link.
+   */
   if (request.status === "cancelled") {
     return <LinkUnavailable message="Fakturaen er trukket tilbake" />;
   }
