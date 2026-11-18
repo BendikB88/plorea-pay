@@ -6,10 +6,15 @@
  * på siden. Vi finner ikke opp den teksten her: API-et sender den, slik at den
  * står ett sted og ikke to.
  *
- * Endepunktet krever ingen autentisering. Referansen i URL-en er hele
- * beskyttelsen, akkurat som tokenet er på /krav/{token} og lenke-id-en på
- * /{id}. Derfor svarer API-et med nøyaktig det PDF-en viser og ikke ett felt
- * mer.
+ * Endepunktet krever ingen autentisering. **Tokenet** i URL-en er hele
+ * beskyttelsen, akkurat som på /krav/{token} og lenke-id-en på /{id}. Derfor
+ * svarer API-et med nøyaktig det PDF-en viser og ikke ett felt mer.
+ *
+ * Det var referansen `sub_...-chg_...` fram til 18. november 2026, og det var
+ * feil: referansen sendes til tenanten i `subscription.charge_succeeded` og
+ * ligger i databasen og loggene deres, så alle som hadde sett en webhook kunne
+ * åpne en navngitt kundes adresse, org.nr. og fire siste kortsiffer. Nå er det
+ * et tilfeldig 128-bits token, og referansen gir 404.
  *
  * `status` er «pending» til PDF-en finnes. Det er hele grunnen til at
  * `receiptUrl` i `subscription.charge_succeeded` peker hit og ikke rett på
@@ -50,7 +55,9 @@ export type ReceiptParty = {
 export type Receipt = {
   status: "ready" | "pending";
   receiptNumber: string | null;
-  reference: string | null;
+  // Ingen `reference`: den som holder tokenet har ingen bruk for
+  // `sub_...-chg_...`, og et felt siden ikke viser er et felt som ikke skal
+  // sendes. Tenanten får den på sitt eget autentiserte endepunkt.
   paidAt: string | null;
   currency: string;
   seller: ReceiptParty | null;
@@ -70,12 +77,12 @@ export type ReceiptResult =
   | { ok: true; receipt: Receipt }
   | { ok: false; reason: "not-found" | "timeout" | "error" };
 
-export async function fetchReceipt(reference: string): Promise<ReceiptResult> {
+export async function fetchReceipt(token: string): Promise<ReceiptResult> {
   let response: Response;
 
   try {
     response = await fetch(
-      `${PAYMENTS_API_BASE}/receipts/public/${encodeURIComponent(reference)}`,
+      `${PAYMENTS_API_BASE}/receipts/public/${encodeURIComponent(token)}`,
       {
         // Aldri cache: en ventende kvittering blir ferdig om et par sekunder,
         // og en side som husker «pending» ville stått fast på det.
@@ -89,9 +96,10 @@ export async function fetchReceipt(reference: string): Promise<ReceiptResult> {
     return { ok: false, reason: isTimeoutError(err) ? "timeout" : "error" };
   }
 
-  // API-et svarer samme 404 for en referanse som ikke finnes, en tenant som
-  // ikke har kvitteringer på, og et trekk som ikke gikk gjennom. Siden skal
-  // ikke prøve å skille dem — det er nettopp poenget med at de er like.
+  // API-et svarer samme 404 for et token som ikke finnes, en referanse brukt
+  // der tokenet skal stå, en tenant som ikke har kvitteringer på, og et trekk
+  // som ikke gikk gjennom. Siden skal ikke prøve å skille dem — det er nettopp
+  // poenget med at de er like.
   if (response.status === 404 || response.status === 410) {
     return { ok: false, reason: "not-found" };
   }

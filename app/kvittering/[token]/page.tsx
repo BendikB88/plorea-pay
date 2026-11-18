@@ -1,5 +1,5 @@
 /**
- * Kvitteringssiden: pay.plorea.no/kvittering/{reference}
+ * Kvitteringssiden: pay.plorea.no/kvittering/{token}
  *
  * Dette er lenken kunden får — i `subscription.charge_succeeded`, i
  * `receipt.ready` og i e-posten. Den peker hit og ikke rett på PDF-en med
@@ -13,7 +13,10 @@
  * det. Ingen «delsum» som netto: det ville invitert leseren til å legge sammen
  * to tall som aldri ble lagt sammen.
  *
- * Referansen i URL-en er hele beskyttelsen, som tokenet på /krav/{token}.
+ * Tokenet i URL-en er hele beskyttelsen, som på /krav/{token}. Det var
+ * referansen `sub_...-chg_...` fram til 18. november 2026 — men den sendes i
+ * selve hendelsen og ligger hos hver tenant, så den var ingen hemmelighet å
+ * bygge en side på. Nå er den 404 her.
  */
 import { formatAmount } from "@/app/lib/paymentLink";
 import {
@@ -31,13 +34,13 @@ export const metadata = {
 export default async function Page({
   params,
 }: {
-  // Typed here rather than with PageProps<"/kvittering/[reference]">: the
+  // Typed here rather than with PageProps<"/kvittering/[token]">: the
   // generated route type does not exist until the next build, so that form
   // fails a type check on a clean checkout.
-  params: Promise<{ reference: string }>;
+  params: Promise<{ token: string }>;
 }) {
-  const { reference } = await params;
-  const result = await fetchReceipt(reference);
+  const { token } = await params;
+  const result = await fetchReceipt(token);
 
   if (!result.ok) {
     return <LinkUnavailable message="Fant ikke kvitteringen" />;
