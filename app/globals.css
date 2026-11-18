@@ -336,3 +336,246 @@ body {
     padding: 28px 20px 36px;
   }
 }
+
+/* ── Kvitteringssiden ──────────────────────────────────────────────────────
+   Samme oppsett som PDF-en, og med vilje: en kunde som laster ned dokumentet
+   rett etter å ha lest siden skal kjenne igjen det samme arket. Hvitt ark,
+   tittel øverst til venstre, merkelapp og verdi for tallene, selger og betaler
+   i to kolonner, én stor linje, så linjene og summene.
+
+   Arket er bredere enn betalingskortet fordi det har fire kolonner å vise, og
+   det er satt i et mål og ikke i prosent: en kvittering som blir bredere på en
+   stor skjerm får linjelengder ingen leser. */
+.receipt-page {
+  min-height: 100dvh;
+  padding: 40px 16px 64px;
+  display: flex;
+  justify-content: center;
+}
+
+.receipt-sheet {
+  width: 100%;
+  max-width: 720px;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 48px 48px 32px;
+}
+
+@media (max-width: 560px) {
+  .receipt-sheet {
+    padding: 28px 20px 24px;
+  }
+}
+
+.receipt-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.receipt-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--midnight);
+}
+
+.receipt-meta {
+  margin: 28px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.receipt-meta-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  font-size: 0.8125rem;
+}
+
+.receipt-meta-row dt {
+  color: var(--ink-muted);
+}
+
+.receipt-meta-row dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--midnight);
+}
+
+.receipt-parties {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 560px) {
+  .receipt-parties {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.receipt-party-label {
+  margin: 0 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.receipt-party-name {
+  margin: 0 0 2px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--midnight);
+}
+
+.receipt-party-line {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.receipt-headline {
+  margin: 32px 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--midnight);
+}
+
+.receipt-note {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+.receipt-items,
+.receipt-history {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.receipt-items th,
+.receipt-history th {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: left;
+}
+
+.receipt-items td,
+.receipt-history td {
+  padding: 10px 0;
+  vertical-align: top;
+  color: var(--midnight);
+}
+
+.receipt-items tbody tr + tr td,
+.receipt-history tbody tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+/* Tall høyrestilles og settes med like brede siffer, så kolonnen kan leses
+   nedover i stedet for ett tall om gangen. */
+.receipt-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.receipt-vat {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.receipt-totals {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.receipt-totals th {
+  padding: 4px 16px 4px 0;
+  text-align: right;
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+
+.receipt-totals td {
+  padding: 4px 0;
+  width: 180px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--midnight);
+}
+
+.receipt-total-main th,
+.receipt-total-main td {
+  padding-top: 12px;
+  border-top: 1px solid var(--midnight);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--midnight);
+}
+
+.receipt-total-paid td {
+  color: var(--violet);
+  font-weight: 600;
+}
+
+.receipt-section {
+  margin: 32px 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--midnight);
+}
+
+.receipt-pending,
+.receipt-download {
+  margin: 28px 0 0;
+}
+
+.receipt-pending {
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.receipt-foot {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.receipt-disclaimer {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.receipt-byline {
+  margin: 10px 0 0;
+  font-size: 0.6875rem;
+  color: #a9a4b4;
+}
+
