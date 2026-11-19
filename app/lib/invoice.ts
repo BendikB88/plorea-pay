@@ -32,7 +32,17 @@ export type InvoiceLine = {
   unit?: string;
   unitAmount: number;
   vatRate?: number;
+  /** `inclusive` eller `exclusive`. Avgjør hva prisoverskriften sier. */
+  taxBehavior?: "inclusive" | "exclusive";
   discountAmount?: number;
+  /**
+   * Perioden linjen dekker, når den dekker tid.
+   *
+   * «Medlemskap» sier ikke hvilken måned. Den står på linjen og ikke på
+   * dokumentet, fordi en faktura kan ha flere linjer for flere perioder.
+   */
+  periodStart?: string | null;
+  periodEnd?: string | null;
   net?: number;
   vat?: number;
   gross?: number;
@@ -71,6 +81,14 @@ export type InvoiceBuyer = {
 
 export type PublicInvoice = {
   documentType: "invoice" | "credit_note";
+  /**
+   * Et testdokument kunngjør seg selv.
+   *
+   * Et dokument fra testmiljøet som ser ut som en faktura havner i en innboks,
+   * blir skrevet ut, og noen prøver å bokføre det. Banneret står øverst, og
+   * live får ingenting.
+   */
+  isTest?: boolean;
   invoiceNumber: string | null;
   /**
    * Den **leste** statusen. `overdue` er ikke lagret noe sted: den utledes av
@@ -194,13 +212,55 @@ export function addressLines(address: InvoiceAddress | null | undefined): string
 export function documentWording(invoice: PublicInvoice) {
   const isCreditNote = invoice.documentType === "credit_note";
   const overdue = invoice.status === "overdue";
+  const settled = Boolean(invoice.paidAt) || invoice.outstanding <= 0;
   return {
     isCreditNote,
     title: isCreditNote ? "Kreditnota" : "Faktura",
     numberLabel: isCreditNote ? "Kreditnotanummer" : "Fakturanummer",
     dateLabel: isCreditNote ? "Kreditnotadato" : "Fakturadato",
+    /** «Å betale», eller «Kreditert» når pengene går andre veien. */
+    totalLabel: isCreditNote ? "Kreditert" : "Å betale",
     /** Betal-knappen vises bare når det faktisk er noe å betale. */
-    payable: !isCreditNote && invoice.outstanding > 0 && Boolean(invoice.paymentLinkId),
+    payable: !isCreditNote && !settled && Boolean(invoice.paymentLinkId),
+    /**
+     * Lenken og QR-koden. Samme regel som knappen, men uten å kreve en
+     * betalingslenke: adressen til denne siden virker uansett, og en utskrift
+     * uten en vei videre er en faktura noen må gjette seg fram til.
+     */
+    showPaymentRoute: !isCreditNote && !settled,
     overdue,
+    /** `TESTFAKTURA – ikke gyldig`, eller ingenting i live. */
+    testBanner: invoice.isTest
+      ? `${isCreditNote ? "TESTKREDITNOTA" : "TESTFAKTURA"} – ikke gyldig`
+      : null,
   };
+}
+
+/**
+ * Prisoverskriften, og om begge prisformene må vises.
+ *
+ * `taxBehavior` avgjør: en pris oppgitt inkludert MVA og en oppgitt uten er to
+ * ulike tall. «299» på et treningssenters nettside er 299 å betale; «299» i et
+ * tilbud til et selskap er 373,75 å betale. En kolonne som bare sier «Pris»
+ * lar leseren gjette.
+ *
+ * Blandes de to i samme faktura, vises **begge** per linje — alternativet er
+ * én overskrift som er feil for halvparten av linjene.
+ */
+export function priceColumns(lines: InvoiceLine[]) {
+  const behaviours = new Set(lines.map((l) => l.taxBehavior).filter(Boolean));
+  const mixed = behaviours.size > 1;
+  return {
+    mixed,
+    header: !mixed && behaviours.has("inclusive") ? "Pris inkl. MVA" : "Pris eks. MVA",
+  };
+}
+
+/** Den andre prisformen, regnet per enhet. Bare for visning. */
+export function otherUnitPrice(line: InvoiceLine): number {
+  const rate = Number(line.vatRate ?? 0);
+  const unit = Number(line.unitAmount ?? 0);
+  return line.taxBehavior === "inclusive"
+    ? Math.round(unit / (1 + rate))
+    : Math.round(unit * (1 + rate));
 }

@@ -33,16 +33,28 @@ import {
   formatInvoiceDate,
   formatInvoiceDateLong,
   formatVatRate,
+  otherUnitPrice,
+  priceColumns,
 } from "@/app/lib/invoice";
 import LinkUnavailable from "@/app/[id]/LinkUnavailable";
+import Qr from "./Qr";
+
+/**
+ * Adressen QR-koden peker på.
+ *
+ * Hardkodet til den offentlige verten og ikke til API-basen: koden skal føre
+ * til DENNE siden, ikke til API-et. En QR som åpner et JSON-svar er en QR
+ * ingen kan betale fra.
+ */
+const PAY_PAGE_ORIGIN = process.env.PAY_PAGE_ORIGIN ?? "https://pay.plorea.no";
 
 /**
  * Fanetittelen følger dokumentet, ikke ruten.
  *
- * `export const metadata` er statisk, så en kreditnota fikk «Faktura · Plorea»
- * i fanen — og en kunde med tre faner åpne kan ikke se hvilken som er hva.
- * Dette koster et ekstra kall til API-et, som er cachet per forespørsel av
- * Next, så det er samme svar siden selv leser.
+ * En statisk `metadata`-eksport ga en kreditnota tittelen «Faktura · Plorea» i
+ * fanen — og en kunde med tre faner åpne kan ikke se hvilken som er hva. Dette
+ * koster et ekstra kall til API-et, som Next cacher per forespørsel, så det er
+ * det samme svaret siden selv leser.
  */
 export async function generateMetadata({
   params,
@@ -114,6 +126,8 @@ export default async function Page({
         ? `${formatAmount(invoice.outstanding, currency)} forfalt ${formatInvoiceDateLong(invoice.dueDate)}`
         : `${formatAmount(invoice.outstanding, currency)} betales innen ${formatInvoiceDateLong(invoice.dueDate)}`;
 
+  const prices = priceColumns(invoice.lines ?? []);
+
   const vatRows = Object.entries(invoice.totals?.vatByRate ?? {})
     .sort((a, b) => Number(b[0]) - Number(a[0]));
 
@@ -125,6 +139,17 @@ export default async function Page({
           høyre når det finnes et sted å oppbevare en. Ikke vårt merke: kunden
           kjøpte av selgeren, og hjørnet på deres dokument er ikke vårt.
         */}
+        {/*
+          Testbanneret. Et dokument fra testmiljøet som ser ut som en faktura
+          havner i en innboks, blir skrevet ut, og noen prøver å bokføre det.
+          Live får ingenting — ingen banner, ingen farge, ingen ekstra linje.
+        */}
+        {words.testBanner ? (
+          <p className="invoice-test-banner" role="status">
+            {words.testBanner}
+          </p>
+        ) : null}
+
         <header className="receipt-head">
           <h1 className="receipt-title">{words.title}</h1>
           {seller?.name ? <p className="invoice-seller-mark">{seller.name}</p> : null}
@@ -224,12 +249,37 @@ export default async function Page({
         ) : null}
 
         {/*
+          Adressen skrevet ut, og en QR-kode til den samme. Som Stripe: siden
+          kan være åpnet på en telefon, men den kan også være skrevet ut — og et
+          papir uten en vei videre er en faktura noen må gjette seg fram til.
+
+          Aldri på en kreditnota og aldri på en betalt faktura. En kreditnota går
+          andre veien, og en betalt faktura som fortsatt viste en betalingsvei
+          inviterer til et dobbelt trekk.
+        */}
+        {words.showPaymentRoute ? (
+          <section className="invoice-route">
+            <div className="invoice-route-text">
+              <p className="invoice-route-label">Betal online</p>
+              <p className="invoice-route-url">pay.plorea.no/faktura/{token}</p>
+            </div>
+            <Qr value={`${PAY_PAGE_ORIGIN}/faktura/${token}`} size={96} />
+          </section>
+        ) : null}
+
+        {/*
           Selgerens egen setning, når de har skrevet en. Vi finner ikke på en:
           en høflighetsfrase ingen har skrevet ville vært oss som legger ord i
           munnen på en selger, på deres eget dokument.
         */}
         {invoice.note ? <p className="receipt-note">{invoice.note}</p> : null}
 
+        {/*
+          Prisoverskriften følger `taxBehavior`. En pris oppgitt inkludert MVA
+          og en oppgitt uten er to ulike tall, og en kolonne som bare sier
+          «Pris» lar leseren gjette. Blandes de to i samme faktura, vises begge
+          per linje — alternativet er én overskrift som er feil for halvparten.
+        */}
         <table className="receipt-items">
           <thead>
             <tr>
@@ -237,9 +287,20 @@ export default async function Page({
               <th scope="col" className="receipt-num">
                 Antall
               </th>
-              <th scope="col" className="receipt-num">
-                Pris
-              </th>
+              {prices.mixed ? (
+                <>
+                  <th scope="col" className="receipt-num">
+                    Pris eks. MVA
+                  </th>
+                  <th scope="col" className="receipt-num">
+                    Pris inkl. MVA
+                  </th>
+                </>
+              ) : (
+                <th scope="col" className="receipt-num">
+                  {prices.header}
+                </th>
+              )}
               <th scope="col" className="receipt-num">
                 MVA
               </th>
@@ -253,6 +314,19 @@ export default async function Page({
               <tr key={line.lineId ?? i}>
                 <td>
                   {line.description}
+                  {/*
+                    Perioden under beskrivelsen, for en linje som dekker tid.
+                    «Medlemskap» sier ikke hvilken måned — og en kunde som ikke
+                    kan se hvilken periode de betaler for, kan ikke kontrollere
+                    fakturaen mot sin egen kalender.
+                  */}
+                  {line.periodStart ? (
+                    <span className="invoice-line-period">
+                      {line.periodEnd
+                        ? `${formatInvoiceDate(line.periodStart)}–${formatInvoiceDate(line.periodEnd)}`
+                        : formatInvoiceDate(line.periodStart)}
+                    </span>
+                  ) : null}
                   {line.discountAmount ? (
                     <span className="receipt-vat">
                       Rabatt -{formatAmount(line.discountAmount, currency)}
@@ -263,7 +337,24 @@ export default async function Page({
                   {line.quantity}
                   {line.unit ? ` ${line.unit}` : ""}
                 </td>
-                <td className="receipt-num">{formatAmount(line.unitAmount, currency)}</td>
+                {prices.mixed ? (
+                  <>
+                    <td className="receipt-num">
+                      {formatAmount(
+                        line.taxBehavior === "inclusive" ? otherUnitPrice(line) : line.unitAmount,
+                        currency
+                      )}
+                    </td>
+                    <td className="receipt-num">
+                      {formatAmount(
+                        line.taxBehavior === "inclusive" ? line.unitAmount : otherUnitPrice(line),
+                        currency
+                      )}
+                    </td>
+                  </>
+                ) : (
+                  <td className="receipt-num">{formatAmount(line.unitAmount, currency)}</td>
+                )}
                 <td className="receipt-num">{formatVatRate(line.vatRate)}</td>
                 <td className="receipt-num">{formatAmount(line.gross ?? 0, currency)}</td>
               </tr>
@@ -279,7 +370,7 @@ export default async function Page({
         <table className="receipt-totals">
           <tbody>
             <tr>
-              <th scope="row">Netto</th>
+              <th scope="row">Sum eks. MVA</th>
               <td>{formatAmount(invoice.totals?.net ?? 0, currency)}</td>
             </tr>
             {vatRows.map(([rate, amount]) => (
@@ -289,7 +380,7 @@ export default async function Page({
               </tr>
             ))}
             <tr className="receipt-total-main">
-              <th scope="row">Totalt</th>
+              <th scope="row">{words.totalLabel}</th>
               <td>{formatAmount(invoice.totals?.gross ?? 0, currency)}</td>
             </tr>
             {/*
@@ -307,10 +398,16 @@ export default async function Page({
         </table>
 
         <footer className="receipt-foot">
+          {/*
+            «Fakturaen er regnskapsbilaget» er ute: det var en påstand om
+            dokumentets rolle i mottakerens regnskap, og den er ikke vår å gjøre
+            på deres ark. Kontaktsetningen står igjen, fordi den svarer på noe
+            kunden faktisk spør om.
+          */}
           <p className="receipt-disclaimer">
             {words.isCreditNote
-              ? "Kreditnotaen er regnskapsbilaget. Beløpet er kreditert og skal ikke betales."
-              : "Fakturaen er regnskapsbilaget. Ved spørsmål, kontakt selgeren på adressen over."}
+              ? "Beløpet er kreditert og skal ikke betales. Ved spørsmål, kontakt selgeren på adressen over."
+              : "Ved spørsmål, kontakt selgeren på adressen over."}
           </p>
           {invoice.issuerStatement ? (
             <p className="receipt-disclaimer">{invoice.issuerStatement}</p>
