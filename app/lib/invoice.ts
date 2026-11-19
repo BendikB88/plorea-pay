@@ -264,3 +264,80 @@ export function otherUnitPrice(line: InvoiceLine): number {
     ? Math.round(unit / (1 + rate))
     : Math.round(unit * (1 + rate));
 }
+
+/**
+ * Enhetene, med entall og flertall. Speilet fra invoices/catalog.js.
+ *
+ * «2 time» står på et dokument en kunde leser, og det er feil norsk på en
+ * faktura noen har betalt for. Bøyningen kan **ikke** utledes: norsk gir
+ * `time → timer`, men `mnd → mnd`, `kg → kg` og `år → år`. En regel som la på
+ * «-er» ville gitt «2 kger» og «3 mnder».
+ *
+ * En ukjent enhet **gjettes ikke på** — den vises som den kom. Avvisningen hører
+ * ved opprettelsen, der et menneske kan rette den; en faktura som ikke kan vises
+ * fordi en enhet er ukjent er verre enn én der enheten står ubøyd.
+ */
+export const UNIT_FORMS: Record<string, { one: string; many: string }> = {
+  stk: { one: "stk", many: "stk" },
+  time: { one: "time", many: "timer" },
+  dag: { one: "dag", many: "dager" },
+  uke: { one: "uke", many: "uker" },
+  mnd: { one: "mnd", many: "mnd" },
+  år: { one: "år", many: "år" },
+  kg: { one: "kg", many: "kg" },
+  liter: { one: "liter", many: "liter" },
+  km: { one: "km", many: "km" },
+  abonnement: { one: "abonnement", many: "abonnementer" },
+};
+
+export function formatUnit(unit: string | undefined, quantity: number): string {
+  if (!unit) return "";
+  const forms = UNIT_FORMS[unit];
+  if (!forms) return unit;
+  return Math.abs(Number(quantity)) === 1 ? forms.one : forms.many;
+}
+
+/** `2 timer`, `1 mnd`, `3 abonnementer`. Bare tallet uten enhet. */
+export function formatQuantity(quantity: number, unit?: string): string {
+  if (!unit) return String(quantity);
+  return `${quantity} ${formatUnit(unit, quantity)}`;
+}
+
+/**
+ * Leveringstidspunktet på dokumentet.
+ *
+ * Når **hver** linje bærer sin egen periode, er dokumentets «Levert» spennet av
+ * dem — tidligste start til seneste slutt — og ikke det kalleren oppgav.
+ *
+ * Grunnen er at faktura 0427 motsa seg selv: dokumentet sa `01.11–30.11`,
+ * linjen sa `19.11–18.12`. Leveringstidspunkt er et krav i
+ * bokføringsforskriften kapittel 5, og to ulike svar på det er verre enn ett.
+ * Nå er dokumentets linje utledet av linjenes, så den kan ikke si noe annet
+ * enn dem.
+ *
+ * Mangler én linje perioden, faller den tilbake på kallerens felt: et spenn
+ * regnet av halve dokumentet ville vært en tredje påstand.
+ */
+export function deliverySpan(
+  invoice: PublicInvoice
+): { from: string; to?: string } | null {
+  const lines = invoice.lines ?? [];
+  const withPeriod = lines.filter((l) => l.periodStart);
+  if (withPeriod.length && withPeriod.length === lines.length) {
+    const starts = withPeriod.map((l) => String(l.periodStart)).sort();
+    const ends = withPeriod.map((l) => String(l.periodEnd || l.periodStart)).sort();
+    return { from: starts[0], to: ends[ends.length - 1] };
+  }
+  if (invoice.deliveryPeriod?.from) {
+    return { from: invoice.deliveryPeriod.from, to: invoice.deliveryPeriod.to };
+  }
+  return invoice.deliveryDate ? { from: invoice.deliveryDate } : null;
+}
+
+/** `19.11.2026–18.12.2026`, eller én dato. Samme strek som på linjen. */
+export function formatSpan(span: { from: string; to?: string } | null): string {
+  if (!span) return "";
+  const from = formatInvoiceDate(span.from);
+  const to = span.to && span.to !== span.from ? formatInvoiceDate(span.to) : "";
+  return to ? `${from}–${to}` : from;
+}

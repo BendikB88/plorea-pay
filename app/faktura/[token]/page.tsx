@@ -32,7 +32,10 @@ import {
   fetchInvoice,
   formatInvoiceDate,
   formatInvoiceDateLong,
+  formatQuantity,
+  formatSpan,
   formatVatRate,
+  deliverySpan,
   otherUnitPrice,
   priceColumns,
 } from "@/app/lib/invoice";
@@ -105,11 +108,15 @@ export default async function Page({
   const sellerAddress = addressLines(seller?.address);
   const buyerAddress = addressLines(buyer?.address);
 
-  const delivery = invoice.deliveryDate
-    ? formatInvoiceDate(invoice.deliveryDate)
-    : invoice.deliveryPeriod?.from
-      ? `${formatInvoiceDate(invoice.deliveryPeriod.from)} – ${formatInvoiceDate(invoice.deliveryPeriod.to)}`
-      : "";
+  /**
+   * Leveringstidspunktet, utledet av linjene når alle bærer en periode.
+   *
+   * Faktura 0427 motsa seg selv: dokumentet sa `01.11–30.11`, linjen sa
+   * `19.11–18.12`. Og streken er nå den samme som på linjen — uten mellomrom.
+   * To ulike strekformer for det samme på ett ark leses som to ulike slags
+   * opplysninger.
+   */
+  const delivery = formatSpan(deliverySpan(invoice));
 
   /**
    * Den ene store linja, og den sier tre ulike ting.
@@ -333,10 +340,8 @@ export default async function Page({
                     </span>
                   ) : null}
                 </td>
-                <td className="receipt-num">
-                  {line.quantity}
-                  {line.unit ? ` ${line.unit}` : ""}
-                </td>
+                {/* «2 timer», ikke «2 time». Bøyningen kommer fra en liste. */}
+                <td className="receipt-num">{formatQuantity(line.quantity, line.unit)}</td>
                 {prices.mixed ? (
                   <>
                     <td className="receipt-num">
