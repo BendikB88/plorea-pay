@@ -84,6 +84,16 @@ export default async function Page({
           høyre når det finnes et sted å oppbevare en. Ikke vårt merke: kunden
           kjøpte av selgeren, og hjørnet på deres dokument er ikke vårt.
         */}
+        {/*
+          Testbanneret. En testkvittering som ser ut som en ekte havner i en
+          innboks og blir skrevet ut. Live får ingenting.
+        */}
+        {receipt.isTest ? (
+          <p className="invoice-test-banner" role="status">
+            TESTKVITTERING – ikke gyldig
+          </p>
+        ) : null}
+
         <header className="receipt-head">
           <h1 className="receipt-title">Kvittering</h1>
         </header>

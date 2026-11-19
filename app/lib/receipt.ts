@@ -55,6 +55,13 @@ export type ReceiptParty = {
 
 export type Receipt = {
   status: "ready" | "pending";
+  /**
+   * Er dette et testdokument?
+   *
+   * En testkvittering som ser ut som en ekte havner i en innboks og blir
+   * skrevet ut. Banneret står øverst, og live får ingenting.
+   */
+  isTest?: boolean;
   receiptNumber: string | null;
   // Ingen `reference`: den som holder tokenet har ingen bruk for
   // `sub_...-chg_...`, og et felt siden ikke viser er et felt som ikke skal
