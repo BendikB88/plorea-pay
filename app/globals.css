@@ -579,3 +579,129 @@ body {
   color: #a9a4b4;
 }
 
+
+/* ── Fakturasiden ───────────────────────────────────────────────────────── */
+
+/**
+ * Betal-knappen.
+ *
+ * Den sto bare på feat/invoices fram til 19. november 2026, så /krav/{token}
+ * rendret en uformatert lenke der knappen skulle vært — en knapp som ikke ser
+ * ut som en knapp blir ikke trykket på, og en faktura som ikke blir betalt er
+ * hele kostnaden.
+ */
+.pay-button {
+  display: inline-block;
+  padding: 14px 28px;
+  border-radius: 10px;
+  background: var(--ink, #1c1917);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition: opacity 120ms ease;
+}
+
+.pay-button:hover {
+  opacity: 0.88;
+}
+
+.pay-button:focus-visible {
+  outline: 2px solid var(--ink, #1c1917);
+  outline-offset: 3px;
+}
+
+.invoice-pay {
+  margin: 0 0 24px;
+}
+
+/** Selgerens navn øverst til høyre, der logoen kommer når det finnes en. */
+.invoice-seller-mark {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-align: right;
+  color: var(--ink, #1c1917);
+}
+
+/**
+ * En forfalt faktura skal ses, men ikke skrikes ut.
+ *
+ * Rødt på hele linja ville gjort et dokument til en advarsel. Dette er det
+ * samme tallet, i samme størrelse, med en farge som sier at datoen har gått.
+ */
+.invoice-overdue {
+  color: #b42318;
+}
+
+/**
+ * Testbanneret.
+ *
+ * Et dokument fra testmiljøet som ser ut som en faktura havner i en innboks,
+ * blir skrevet ut, og noen prøver å bokføre det. Banneret står øverst, før
+ * leseren rekker til nummeret. Live får ingenting.
+ */
+.invoice-test-banner {
+  margin: 0 0 20px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fef3f2;
+  color: #b42318;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+}
+
+/* Betal online: adressen til venstre, QR-koden til høyre. */
+.invoice-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 0 28px;
+  padding: 16px;
+  border: 1px solid var(--rule, #e7e5e4);
+  border-radius: 10px;
+}
+
+.invoice-route-text {
+  min-width: 0;
+}
+
+.invoice-route-label {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  color: var(--ink-muted, #78716c);
+}
+
+.invoice-route-url {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+  /* En adresse som skal tastes av, må kunne brytes et sted. */
+  overflow-wrap: anywhere;
+}
+
+.invoice-qr {
+  flex: 0 0 auto;
+}
+
+/**
+ * Perioden under beskrivelsen.
+ *
+ * «Medlemskap» sier ikke hvilken måned, og en kunde som ikke ser hvilken
+ * periode de betaler for kan ikke kontrollere fakturaen mot kalenderen sin.
+ */
+.invoice-line-period {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--ink-muted, #78716c);
+}
+
+@media (max-width: 520px) {
+  .invoice-route {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
