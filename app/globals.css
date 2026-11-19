@@ -579,3 +579,57 @@ body {
   color: #a9a4b4;
 }
 
+
+/* ── Fakturasiden ───────────────────────────────────────────────────────── */
+
+/**
+ * Betal-knappen.
+ *
+ * Den sto bare på feat/invoices fram til 19. november 2026, så /krav/{token}
+ * rendret en uformatert lenke der knappen skulle vært — en knapp som ikke ser
+ * ut som en knapp blir ikke trykket på, og en faktura som ikke blir betalt er
+ * hele kostnaden.
+ */
+.pay-button {
+  display: inline-block;
+  padding: 14px 28px;
+  border-radius: 10px;
+  background: var(--ink, #1c1917);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition: opacity 120ms ease;
+}
+
+.pay-button:hover {
+  opacity: 0.88;
+}
+
+.pay-button:focus-visible {
+  outline: 2px solid var(--ink, #1c1917);
+  outline-offset: 3px;
+}
+
+.invoice-pay {
+  margin: 0 0 24px;
+}
+
+/** Selgerens navn øverst til høyre, der logoen kommer når det finnes en. */
+.invoice-seller-mark {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-align: right;
+  color: var(--ink, #1c1917);
+}
+
+/**
+ * En forfalt faktura skal ses, men ikke skrikes ut.
+ *
+ * Rødt på hele linja ville gjort et dokument til en advarsel. Dette er det
+ * samme tallet, i samme størrelse, med en farge som sier at datoen har gått.
+ */
+.invoice-overdue {
+  color: #b42318;
+}
