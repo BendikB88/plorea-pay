@@ -14,6 +14,7 @@ import { formatAmount } from "@/app/lib/paymentLink";
 import { fetchPaymentRequest, formatDueDate } from "@/app/lib/paymentRequest";
 import { notFound } from "next/navigation";
 import LinkUnavailable from "@/app/[id]/LinkUnavailable";
+import { BrandAccent } from "@/app/components/BrandAccent";
 
 export const metadata = {
   title: "Faktura · Plorea",
@@ -45,6 +46,8 @@ export default async function Page({ params }: PageProps<"/krav/[token]">) {
 
   return (
     <main className="pay-shell">
+      {/* Selgerens farge, HANDOFF §42.1. Ingenting når den ikke er satt. */}
+      <BrandAccent color={request.brandColor} />
       <div className="pay-card">
         <div className="pay-merchant">
           <span className="pay-merchant-name">

@@ -34,6 +34,7 @@ import {
   formatVatRate,
 } from "@/app/lib/receipt";
 import LinkUnavailable from "@/app/[id]/LinkUnavailable";
+import { BrandAccent } from "@/app/components/BrandAccent";
 
 export const metadata = {
   title: "Kvittering · Plorea",
@@ -78,6 +79,8 @@ export default async function Page({
 
   return (
     <main className="receipt-page">
+      {/* Selgerens farge, HANDOFF §42.1. Ingenting når den ikke er satt. */}
+      <BrandAccent color={receipt.brandColor} />
       <article className="receipt-sheet">
         {/*
           «Kvittering» stort øverst til venstre, og plass til selgerens logo til

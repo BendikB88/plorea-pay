@@ -80,6 +80,16 @@ export type InvoiceBuyer = {
 };
 
 export type PublicInvoice = {
+  /**
+   * Selgerens aksentfarge, HANDOFF §42.1.
+   *
+   * Fraværende når tenanten ikke har satt en — ikke null, ikke en
+   * standardfarge. BrandAccent tegner ingenting da, og siden står i Done
+   * Pay-fiolett som før. Om fargen kan leses avgjøres her og ikke av
+   * API-et: usableBrandColor krever 4,5:1 mot hvitt, fordi fargen bærer
+   * beløpet og betal-knappen.
+   */
+  brandColor?: string;
   documentType: "invoice" | "credit_note";
   /**
    * Et testdokument kunngjør seg selv.

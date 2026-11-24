@@ -41,6 +41,7 @@ import {
 } from "@/app/lib/invoice";
 import LinkUnavailable from "@/app/[id]/LinkUnavailable";
 import Qr from "./Qr";
+import { BrandAccent } from "@/app/components/BrandAccent";
 
 /**
  * Adressen QR-koden peker på.
@@ -140,6 +141,8 @@ export default async function Page({
 
   return (
     <main className="receipt-page">
+      {/* Selgerens farge, HANDOFF §42.1. Ingenting når den ikke er satt. */}
+      <BrandAccent color={invoice.brandColor} />
       <article className="receipt-sheet">
         {/*
           Tittelen stort øverst til venstre, og plass til selgerens logo til

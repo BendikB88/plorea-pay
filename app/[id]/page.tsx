@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { fetchPaymentLink } from "@/app/lib/paymentLink";
 import LinkUnavailable from "./LinkUnavailable";
 import PaymentPage from "./PaymentPage";
+import { BrandAccent } from "@/app/components/BrandAccent";
 
 export const metadata = {
   title: "Betaling · Plorea",
@@ -28,5 +29,15 @@ export default async function Page({ params }: PageProps<"/[id]">) {
     return <LinkUnavailable message="Betalingslenken er utløpt" />;
   }
 
-  return <PaymentPage link={result.link} />;
+  /**
+   * Selgerens farge, HANDOFF §42.1. Fragmentet er der for at stilen skal
+   * kunne stå ved siden av siden — `BrandAccent` rendrer `null` når det ikke
+   * er noen farge, så dette er samme tre som før for hver tenant uten en.
+   */
+  return (
+    <>
+      <BrandAccent color={result.link.brandColor} />
+      <PaymentPage link={result.link} />
+    </>
+  );
 }
