@@ -213,46 +213,6 @@ body {
   max-width: 34ch;
 }
 
-/*
-   Primærknappen: «Betal med kort» på /krav/{token}.
-
-   Klassen ble brukt av kravsiden uten å finnes i noe stilark, så lenken arvet
-   den globale a-regelen — ingen bakgrunn, ingen ramme, ingen understreking og
-   samme tekstfarge som alt annet. «Betal med kort» leste som enda en tekstlinje
-   rett under beløpet, ikke som noe man kunne trykke på. Kravsiden er ikke i
-   produksjon ennå, så ingen kunde har sett det; rettet 18. november 2026 før
-   den kommer dit.
-
-   Samme geometri som .pay-button-secondary, så de to kan stå ved siden av
-   hverandre, men fylt: den primære handlingen skal være den man ser først.
-*/
-.pay-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 11px 20px;
-  border: 1px solid var(--midnight);
-  border-radius: var(--radius-control);
-  background: var(--midnight);
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.pay-button:hover {
-  background: var(--violet);
-  border-color: var(--violet);
-  color: #ffffff;
-}
-
-.pay-button:focus-visible {
-  outline: 2px solid var(--violet);
-  outline-offset: 2px;
-}
-
 .pay-button-secondary {
   display: inline-flex;
   align-items: center;
